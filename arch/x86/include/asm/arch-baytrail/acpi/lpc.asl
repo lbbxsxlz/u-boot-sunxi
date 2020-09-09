@@ -1,14 +1,34 @@
+/* SPDX-License-Identifier: GPL-2.0+ */
 /*
  * Copyright (C) 2007-2009 coresystems GmbH
  * Copyright (C) 2013 Google Inc.
  * Copyright (C) 2016 Bin Meng <bmeng.cn@gmail.com>
  *
  * Modified from coreboot src/soc/intel/baytrail/acpi/lpc.asl
- *
- * SPDX-License-Identifier:	GPL-2.0+
  */
 
 /* Intel LPC Bus Device - 0:1f.0 */
+
+Scope (\)
+{
+	/* Intel Legacy Block */
+	OperationRegion(ILBS, SystemMemory, ILB_BASE_ADDRESS, ILB_BASE_SIZE)
+	Field(ILBS, AnyAcc, NoLock, Preserve) {
+		Offset (0x8),
+		PRTA, 8,
+		PRTB, 8,
+		PRTC, 8,
+		PRTD, 8,
+		PRTE, 8,
+		PRTF, 8,
+		PRTG, 8,
+		PRTH, 8,
+		Offset (0x88),
+		    , 3,
+		UI3E, 1,
+		UI4E, 1
+	}
+}
 
 Device (LPCB)
 {
@@ -23,7 +43,7 @@ Device (LPCB)
 		Offset(0x84)
 	}
 
-	#include "irqlinks.asl"
+	#include <asm/acpi/irqlinks.asl>
 
 	/* Firmware Hub */
 	Device (FWH)
@@ -98,17 +118,14 @@ Device (LPCB)
 
 		Method(_STA, 0, Serialized)
 		{
-			/*
-			 * TODO:
-			 *
-			 * Need to hide the internal UART depending on whether
-			 * internal UART is enabled or not so that external
-			 * SuperIO UART can be exposed to system.
-			 */
-			Store(1, UI3E)
-			Store(1, UI4E)
-			Store(1, C1EN)
-			Return (STA_VISIBLE)
+			If (LEqual(IURE, 1)) {
+				Store(1, UI3E)
+				Store(1, UI4E)
+				Store(1, C1EN)
+				Return (STA_VISIBLE)
+			} Else {
+				Return (STA_MISSING)
+			}
 
 		}
 

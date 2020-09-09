@@ -1,7 +1,6 @@
+// SPDX-License-Identifier: GPL-2.0+
 /*
  * Copyright (C) 2016 Marek Vasut <marex@denx.de>
- *
- * SPDX-License-Identifier: GPL-2.0+
  */
 
 #include <common.h>
@@ -9,7 +8,7 @@
 #include <asm/addrspace.h>
 #include <asm/types.h>
 #include <mach/ar71xx_regs.h>
-#include <mach/reset.h>
+#include <mach/ath79.h>
 #include <wait_bit.h>
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -90,7 +89,7 @@ static void ar934x_srif_pll_cfg(void __iomem *pll_reg_base, const u32 srif_val)
 		setbits_be32(pll_reg_base + 0x8, BIT(30));
 		udelay(5);
 
-		wait_for_bit("clk", pll_reg_base + 0xc, BIT(3), 1, 10, 0);
+		wait_for_bit_le32(pll_reg_base + 0xc, BIT(3), 1, 10, 0);
 
 		clrbits_be32(pll_reg_base + 0x8, BIT(30));
 		udelay(5);
@@ -119,7 +118,7 @@ void ar934x_pll_init(const u16 cpu_mhz, const u16 ddr_mhz, const u16 ahb_mhz)
 	writel(0x03000000, srif_regs + 0x188); /* Undocumented reg :-) */
 
 	/* Test for 40MHz XTAL */
-	reg = get_bootstrap();
+	reg = ath79_get_bootstrap();
 	if (reg & AR934X_BOOTSTRAP_REF_CLK_40) {
 		xtal_40 = 1;
 		cpu_srif = 0x41c00000;
@@ -214,7 +213,7 @@ static u32 ar934x_get_xtal(void)
 {
 	u32 val;
 
-	val = get_bootstrap();
+	val = ath79_get_bootstrap();
 	if (val & AR934X_BOOTSTRAP_REF_CLK_40)
 		return 40000000;
 	else

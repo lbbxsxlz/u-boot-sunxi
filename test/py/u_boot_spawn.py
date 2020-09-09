@@ -1,6 +1,5 @@
-# Copyright (c) 2015-2016, NVIDIA CORPORATION. All rights reserved.
-#
 # SPDX-License-Identifier: GPL-2.0
+# Copyright (c) 2015-2016, NVIDIA CORPORATION. All rights reserved.
 
 # Logic to spawn a sub-process and interact with its stdio.
 
@@ -18,6 +17,9 @@ class Timeout(Exception):
 class Spawn(object):
     """Represents the stdio of a freshly created sub-process. Commands may be
     sent to the process, and responses waited for.
+
+    Members:
+        output: accumulated output from expect()
     """
 
     def __init__(self, args, cwd=None):
@@ -34,10 +36,16 @@ class Spawn(object):
 
         self.waited = False
         self.buf = ''
+        self.output = ''
         self.logfile_read = None
         self.before = ''
         self.after = ''
         self.timeout = None
+        # http://stackoverflow.com/questions/7857352/python-regex-to-match-vt100-escape-sequences
+        # Note that re.I doesn't seem to work with this regex (or perhaps the
+        # version of Python in Ubuntu 14.04), hence the inclusion of a-z inside
+        # [] instead.
+        self.re_vt100 = re.compile('(\x1b\[|\x9b)[^@-_a-z]*[@-_a-z]|\x1b[@-_a-z]')
 
         (self.pid, self.fd) = pty.fork()
         if self.pid == 0:
@@ -50,7 +58,7 @@ class Spawn(object):
                     os.chdir(cwd)
                 os.execvp(args[0], args)
             except:
-                print 'CHILD EXECEPTION:'
+                print('CHILD EXECEPTION:')
                 import traceback
                 traceback.print_exc()
             finally:
@@ -126,7 +134,7 @@ class Spawn(object):
             the expected time.
         """
 
-        for pi in xrange(len(patterns)):
+        for pi in range(len(patterns)):
             if type(patterns[pi]) == type(''):
                 patterns[pi] = re.compile(patterns[pi])
 
@@ -135,7 +143,7 @@ class Spawn(object):
             while True:
                 earliest_m = None
                 earliest_pi = None
-                for pi in xrange(len(patterns)):
+                for pi in range(len(patterns)):
                     pattern = patterns[pi]
                     m = pattern.search(self.buf)
                     if not m:
@@ -149,6 +157,7 @@ class Spawn(object):
                     posafter = earliest_m.end()
                     self.before = self.buf[:pos]
                     self.after = self.buf[pos:posafter]
+                    self.output += self.buf[:posafter]
                     self.buf = self.buf[posafter:]
                     return earliest_pi
                 tnow_s = time.time()
@@ -168,6 +177,10 @@ class Spawn(object):
                 if self.logfile_read:
                     self.logfile_read.write(c)
                 self.buf += c
+                # count=0 is supposed to be the default, which indicates
+                # unlimited substitutions, but in practice the version of
+                # Python in Ubuntu 14.04 appears to default to count=2!
+                self.buf = self.re_vt100.sub('', self.buf, count=1000000)
         finally:
             if self.logfile_read:
                 self.logfile_read.flush()
@@ -185,7 +198,15 @@ class Spawn(object):
         """
 
         os.close(self.fd)
-        for i in xrange(100):
+        for i in range(100):
             if not self.isalive():
                 break
             time.sleep(0.1)
+
+    def get_expect_output(self):
+        """Return the output read by expect()
+
+        Returns:
+            The output processed by expect(), as a string.
+        """
+        return self.output

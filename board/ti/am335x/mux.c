@@ -135,6 +135,11 @@ static struct module_pin_mux gpio0_7_pin_mux[] = {
 	{-1},
 };
 
+static struct module_pin_mux gpio0_18_pin_mux[] = {
+	{OFFSET(usb0_drvvbus), (MODE(7) | PULLUDEN)},	/* GPIO0_18 */
+	{-1},
+};
+
 static struct module_pin_mux rgmii1_pin_mux[] = {
 	{OFFSET(mii1_txen), MODE(2)},			/* RGMII1_TCTL */
 	{OFFSET(mii1_rxdv), MODE(2) | RXACTIVE},	/* RGMII1_RCTL */
@@ -169,6 +174,20 @@ static struct module_pin_mux mii1_pin_mux[] = {
 	{OFFSET(mii1_rxd0), MODE(0) | RXACTIVE},	/* MII1_RXD0 */
 	{OFFSET(mdio_data), MODE(0) | RXACTIVE | PULLUP_EN}, /* MDIO_DATA */
 	{OFFSET(mdio_clk), MODE(0) | PULLUP_EN},	/* MDIO_CLK */
+	{-1},
+};
+
+static struct module_pin_mux rmii1_pin_mux[] = {
+	{OFFSET(mdio_clk), MODE(0) | PULLUP_EN},	/* MDIO_CLK */
+	{OFFSET(mdio_data), MODE(0) | RXACTIVE | PULLUP_EN}, /* MDIO_DATA */
+	{OFFSET(mii1_crs), MODE(1) | RXACTIVE},		/* MII1_CRS */
+	{OFFSET(mii1_rxerr), MODE(1) | RXACTIVE},	/* MII1_RXERR */
+	{OFFSET(mii1_txen), MODE(1)},			/* MII1_TXEN */
+	{OFFSET(mii1_txd1), MODE(1)},			/* MII1_TXD1 */
+	{OFFSET(mii1_txd0), MODE(1)},			/* MII1_TXD0 */
+	{OFFSET(mii1_rxd1), MODE(1) | RXACTIVE},	/* MII1_RXD1 */
+	{OFFSET(mii1_rxd0), MODE(1) | RXACTIVE},	/* MII1_RXD0 */
+	{OFFSET(rmii1_refclk), MODE(0) | RXACTIVE},	/* RMII1_REFCLK */
 	{-1},
 };
 
@@ -237,6 +256,12 @@ static struct module_pin_mux bone_norcape_pin_mux[] = {
 };
 #endif
 
+static struct module_pin_mux uart3_icev2_pin_mux[] = {
+	{OFFSET(mii1_rxd3), (MODE(1) | PULLUP_EN | RXACTIVE)},	/* UART3_RXD */
+	{OFFSET(mii1_rxd2), MODE(1) | PULLUDEN},		/* UART3_TXD */
+	{-1},
+};
+
 #if defined(CONFIG_NOR_BOOT)
 void enable_norboot_pin_mux(void)
 {
@@ -304,12 +329,23 @@ static unsigned short detect_daughter_board_profile(void)
 {
 	unsigned short val;
 
+#ifndef CONFIG_DM_I2C
 	if (i2c_probe(I2C_CPLD_ADDR))
 		return PROFILE_NONE;
 
 	if (i2c_read(I2C_CPLD_ADDR, CFG_REG, 1, (unsigned char *)(&val), 2))
 		return PROFILE_NONE;
+#else
+	struct udevice *dev = NULL;
+	int rc;
 
+	rc = i2c_get_chip_for_busnum(0, I2C_CPLD_ADDR, 1, &dev);
+	if (rc)
+		return PROFILE_NONE;
+	rc = dm_i2c_read(dev, CFG_REG, (unsigned char *)(&val), 2);
+	if (rc)
+		return PROFILE_NONE;
+#endif
 	return (1 << (val & PROFILE_MASK));
 }
 
@@ -355,6 +391,13 @@ void enable_board_pin_mux(void)
 		configure_module_pin_mux(rgmii1_pin_mux);
 		configure_module_pin_mux(mmc0_pin_mux_sk_evm);
 	} else if (board_is_bone_lt()) {
+		if (board_is_bben()) {
+			/* SanCloud Beaglebone LT Enhanced pinmux */
+			configure_module_pin_mux(rgmii1_pin_mux);
+		} else {
+			/* Beaglebone LT pinmux */
+			configure_module_pin_mux(mii1_pin_mux);
+		}
 		/* Beaglebone LT pinmux */
 		configure_module_pin_mux(mii1_pin_mux);
 		configure_module_pin_mux(mmc0_pin_mux);
@@ -365,8 +408,17 @@ void enable_board_pin_mux(void)
 #else
 		configure_module_pin_mux(mmc1_pin_mux);
 #endif
+	} else if (board_is_pb()) {
+		configure_module_pin_mux(mii1_pin_mux);
+		configure_module_pin_mux(mmc0_pin_mux);
+	} else if (board_is_icev2()) {
+		configure_module_pin_mux(mmc0_pin_mux);
+		configure_module_pin_mux(gpio0_18_pin_mux);
+		configure_module_pin_mux(uart3_icev2_pin_mux);
+		configure_module_pin_mux(rmii1_pin_mux);
+		configure_module_pin_mux(spi0_pin_mux);
 	} else {
-		puts("Unknown board, cannot configure pinmux.");
-		hang();
+		/* Unknown board. We might still be able to boot. */
+		puts("Bad EEPROM or unknown board, cannot configure pinmux.");
 	}
 }

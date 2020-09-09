@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-2.0+ */
 /*
  * Atheros AR71XX/AR724X/AR913X SoC register definitions
  *
@@ -5,8 +6,6 @@
  * Copyright (C) 2010-2011 Jaiganesh Narayanan <jnarayanan@atheros.com>
  * Copyright (C) 2008-2010 Gabor Juhos <juhosg@openwrt.org>
  * Copyright (C) 2008 Imre Kaloz <kaloz@openwrt.org>
- *
- * SPDX-License-Identifier:     GPL-2.0+
  */
 
 #ifndef __ASM_MACH_AR71XX_REGS_H
@@ -331,6 +330,7 @@
 #define AR933X_PLL_CPU_CONFIG_REG			0x00
 #define AR933X_PLL_CLK_CTRL_REG				0x08
 #define AR933X_PLL_DITHER_FRAC_REG			0x10
+#define AR933X_PLL_SWITCH_CLOCK_CONTROL_REG		0x24
 
 #define AR933X_PLL_CPU_CONFIG_NINT_SHIFT		10
 #define AR933X_PLL_CPU_CONFIG_NINT_MASK			0x3f
@@ -660,6 +660,7 @@
 
 #define AR933X_RESET_GE1_MDIO				BIT(23)
 #define AR933X_RESET_GE0_MDIO				BIT(22)
+#define AR933X_RESET_ETH_SWITCH_ANALOG			BIT(14)
 #define AR933X_RESET_GE1_MAC				BIT(13)
 #define AR933X_RESET_WMAC				BIT(11)
 #define AR933X_RESET_GE0_MAC				BIT(9)

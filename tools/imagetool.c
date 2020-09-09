@@ -1,9 +1,8 @@
+// SPDX-License-Identifier: GPL-2.0+
 /*
  * (C) Copyright 2013
  *
  * Written by Guilherme Maciel Ferreira <guilherme.maciel.ferreira@gmail.com>
- *
- * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #include "imagetool.h"
@@ -114,4 +113,24 @@ int imagetool_get_filesize(struct image_tool_params *params, const char *fname)
 	close(fd);
 
 	return sbuf.st_size;
+}
+
+time_t imagetool_get_source_date(
+	 const char *cmdname,
+	 time_t fallback)
+{
+	char *source_date_epoch = getenv("SOURCE_DATE_EPOCH");
+
+	if (source_date_epoch == NULL)
+		return fallback;
+
+	time_t time = (time_t) strtol(source_date_epoch, NULL, 10);
+
+	if (gmtime(&time) == NULL) {
+		fprintf(stderr, "%s: SOURCE_DATE_EPOCH is not valid\n",
+			cmdname);
+		time = 0;
+	}
+
+	return time;
 }

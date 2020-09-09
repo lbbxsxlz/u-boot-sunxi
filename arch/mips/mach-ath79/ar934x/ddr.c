@@ -1,9 +1,8 @@
+// SPDX-License-Identifier: GPL-2.0+
 /*
  * Copyright (C) 2016 Marek Vasut <marex@denx.de>
  *
  * Based on RAM init sequence by Piotr Dymacz <pepe2k@gmail.com>
- *
- * SPDX-License-Identifier: GPL-2.0+
  */
 
 #include <common.h>
@@ -11,7 +10,7 @@
 #include <asm/addrspace.h>
 #include <asm/types.h>
 #include <mach/ar71xx_regs.h>
-#include <mach/reset.h>
+#include <mach/ath79.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -45,7 +44,7 @@ void ar934x_ddr_init(const u16 cpu_mhz, const u16 ddr_mhz, const u16 ahb_mhz)
 	ddr_regs = map_physmem(AR71XX_DDR_CTRL_BASE, AR71XX_DDR_CTRL_SIZE,
 			       MAP_NOCACHE);
 
-	reg = get_bootstrap();
+	reg = ath79_get_bootstrap();
 	if (reg & AR934X_BOOTSTRAP_SDRAM_DISABLED) {	/* DDR */
 		if (reg & AR934X_BOOTSTRAP_DDR1) {	/* DDR 1 */
 			memtype = AR934X_DDR1;

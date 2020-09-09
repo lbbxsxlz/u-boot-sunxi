@@ -449,6 +449,15 @@ The driver model tree is intended to mirror that of the device tree. The
 root driver is at device tree offset 0 (the root node, '/'), and its
 children are the children of the root node.
 
+In order for a device tree to be valid, the content must be correct with
+respect to either device tree specification
+(https://www.devicetree.org/specifications/) or the device tree bindings that
+are found in the doc/device-tree-bindings directory.  When not U-Boot specific
+the bindings in this directory tend to come from the Linux Kernel.  As such
+certain design decisions may have been made already for us in terms of how
+specific devices are described and bound.  In most circumstances we wish to
+retain compatibility without additional changes being made to the device tree
+source files.
 
 Declaring Uclasses
 ------------------
@@ -606,19 +615,24 @@ methods actually defined.
 
 1. Bind stage
 
-A device and its driver are bound using one of these two methods:
+U-Boot discovers devices using one of these two methods:
 
-   - Scan the U_BOOT_DEVICE() definitions. U-Boot It looks up the
-name specified by each, to find the appropriate driver. It then calls
-device_bind() to create a new device and bind' it to its driver. This will
-call the device's bind() method.
+   - Scan the U_BOOT_DEVICE() definitions. U-Boot looks up the name specified
+by each, to find the appropriate U_BOOT_DRIVER() definition. In this case,
+there is no path by which driver_data may be provided, but the U_BOOT_DEVICE()
+may provide platdata.
 
    - Scan through the device tree definitions. U-Boot looks at top-level
 nodes in the the device tree. It looks at the compatible string in each node
-and uses the of_match part of the U_BOOT_DRIVER() structure to find the
-right driver for each node. It then calls device_bind() to bind the
-newly-created device to its driver (thereby creating a device structure).
-This will also call the device's bind() method.
+and uses the of_match table of the U_BOOT_DRIVER() structure to find the
+right driver for each node. In this case, the of_match table may provide a
+driver_data value, but platdata cannot be provided until later.
+
+For each device that is discovered, U-Boot then calls device_bind() to create a
+new device, initializes various core fields of the device object such as name,
+uclass & driver, initializes any optional fields of the device object that are
+applicable such as of_offset, driver_data & platdata, and finally calls the
+driver's bind() method if one is defined.
 
 At this point all the devices are known, and bound to their drivers. There
 is a 'struct udevice' allocated for all devices. However, nothing has been
@@ -679,7 +693,7 @@ steps (see device_probe()):
 
    g. If the driver provides an ofdata_to_platdata() method, then this is
    called to convert the device tree data into platform data. This should
-   do various calls like fdtdec_get_int(gd->fdt_blob, dev->of_offset, ...)
+   do various calls like fdtdec_get_int(gd->fdt_blob, dev_of_offset(dev), ...)
    to access the node and store the resulting information into dev->platdata.
    After this point, the device works the same way whether it was bound
    using a device tree node or U_BOOT_DEVICE() structure. In either case,
@@ -690,7 +704,7 @@ steps (see device_probe()):
    allocate it yourself in ofdata_to_platdata(). Note that it is preferable
    to do all the device tree decoding in ofdata_to_platdata() rather than
    in probe(). (Apart from the ugliness of mixing configuration and run-time
-   data, one day it is possible that U-Boot will cache platformat data for
+   data, one day it is possible that U-Boot will cache platform data for
    devices which are regularly de/activated).
 
    h. The device's probe() method is called. This should do anything that
@@ -816,9 +830,24 @@ Pre-Relocation Support
 ----------------------
 
 For pre-relocation we simply call the driver model init function. Only
-drivers marked with DM_FLAG_PRE_RELOC or the device tree
-'u-boot,dm-pre-reloc' flag are initialised prior to relocation. This helps
-to reduce the driver model overhead.
+drivers marked with DM_FLAG_PRE_RELOC or the device tree 'u-boot,dm-pre-reloc'
+property are initialised prior to relocation. This helps to reduce the driver
+model overhead. This flag applies to SPL and TPL as well, if device tree is
+enabled (CONFIG_OF_CONTROL) there.
+
+Note when device tree is enabled, the device tree 'u-boot,dm-pre-reloc'
+property can provide better control granularity on which device is bound
+before relocation. While with DM_FLAG_PRE_RELOC flag of the driver all
+devices with the same driver are bound, which requires allocation a large
+amount of memory. When device tree is not used, DM_FLAG_PRE_RELOC is the
+only way for statically declared devices via U_BOOT_DEVICE() to be bound
+prior to relocation.
+
+It is possible to limit this to specific relocation steps, by using
+the more specialized 'u-boot,dm-spl' and 'u-boot,dm-tpl' flags
+in the device tree node. For U-Boot proper you can use 'u-boot,dm-pre-proper'
+which means that it will be processed (and a driver bound) in U-Boot proper
+prior to relocation, but will not be available in SPL or TPL.
 
 Then post relocation we throw that away and re-init driver model again.
 For drivers which require some sort of continuity between pre- and

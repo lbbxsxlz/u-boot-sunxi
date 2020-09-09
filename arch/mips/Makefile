@@ -1,15 +1,22 @@
-#
-# SPDX-License-Identifier:	GPL-2.0+
-#
+# SPDX-License-Identifier: GPL-2.0+
 
 head-y := arch/mips/cpu/start.o
+
+ifeq ($(CONFIG_SPL_BUILD),y)
+ifneq ($(CONFIG_SPL_START_S_PATH),)
+head-y := $(CONFIG_SPL_START_S_PATH:"%"=%)/start.o
+endif
+endif
 
 libs-y += arch/mips/cpu/
 libs-y += arch/mips/lib/
 
-machine-$(CONFIG_SOC_AU1X00) += au1x00
 machine-$(CONFIG_ARCH_ATH79) += ath79
+machine-$(CONFIG_ARCH_BMIPS) += bmips
+machine-$(CONFIG_ARCH_JZ47XX) += jz47xx
 machine-$(CONFIG_MACH_PIC32) += pic32
+machine-$(CONFIG_ARCH_MT7620) += mt7620
+machine-$(CONFIG_ARCH_MSCC) += mscc
 
 machdirs := $(patsubst %,arch/mips/mach-%/,$(machine-y))
 libs-y += $(machdirs)
@@ -28,6 +35,7 @@ arch-$(CONFIG_CPU_MIPS64_R6) += -march=mips64r6 -Wa,-mips64r6
 tune-$(CONFIG_MIPS_TUNE_4KC) += -mtune=4kc
 tune-$(CONFIG_MIPS_TUNE_14KC) += -mtune=14kc
 tune-$(CONFIG_MIPS_TUNE_24KC) += -mtune=24kc
+tune-$(CONFIG_MIPS_TUNE_34KC) += -mtune=34kc
 tune-$(CONFIG_MIPS_TUNE_74KC) += -mtune=74kc
 
 # Include default header files

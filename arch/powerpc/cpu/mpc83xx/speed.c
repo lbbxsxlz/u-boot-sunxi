@@ -1,11 +1,12 @@
+// SPDX-License-Identifier: GPL-2.0+
 /*
  * (C) Copyright 2000-2002
  * Wolfgang Denk, DENX Software Engineering, wd@denx.de.
  *
  * Copyright (C) 2004-2007 Freescale Semiconductor, Inc.
- *
- * SPDX-License-Identifier:	GPL-2.0+
  */
+
+#ifndef CONFIG_CLK_MPC83XX
 
 #include <common.h>
 #include <mpc83xx.h>
@@ -412,7 +413,7 @@ int get_clocks(void)
 #endif
 
 	corecnf_tab_index = ((corepll & 0x1F) << 2) | ((corepll & 0x60) >> 5);
-	if (corecnf_tab_index > (sizeof(corecnf_tab) / sizeof(corecnf_t))) {
+	if (corecnf_tab_index > (ARRAY_SIZE(corecnf_tab))) {
 		/* corecnf_tab_index is too high, possibly wrong value */
 		return -11;
 	}
@@ -591,3 +592,5 @@ U_BOOT_CMD(clocks, 1, 0, do_clocks,
 	"print clock configuration",
 	"    clocks"
 );
+
+#endif

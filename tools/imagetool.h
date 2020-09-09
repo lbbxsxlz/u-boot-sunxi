@@ -1,9 +1,8 @@
+/* SPDX-License-Identifier: GPL-2.0+ */
 /*
  * (C) Copyright 2013
  *
  * Written by Guilherme Maciel Ferreira <guilherme.maciel.ferreira@gmail.com>
- *
- * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #ifndef _IMAGETOOL_H_
@@ -12,6 +11,7 @@
 #include "os_support.h"
 #include <errno.h>
 #include <fcntl.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -70,10 +70,13 @@ struct image_tool_params {
 	int orig_file_size;	/* Original size for file before padding */
 	bool auto_its;		/* Automatically create the .its file */
 	int fit_image_type;	/* Image type to put into the FIT */
+	char *fit_ramdisk;	/* Ramdisk file to include */
 	struct content_info *content_head;	/* List of files to include */
 	struct content_info *content_tail;
 	bool external_data;	/* Store data outside the FIT */
 	bool quiet;		/* Don't output text in normal operation */
+	unsigned int external_offset;	/* Add padding to external data */
+	const char *engine_id;	/* Engine to use for signing */
 };
 
 /*
@@ -205,6 +208,22 @@ int imagetool_save_subimage(
  */
 int imagetool_get_filesize(struct image_tool_params *params, const char *fname);
 
+/**
+ * imagetool_get_source_date() - Get timestamp for build output.
+ *
+ * Gets a timestamp for embedding it in a build output. If set
+ * SOURCE_DATE_EPOCH is used. Else the given fallback value is returned. Prints
+ * an error message if SOURCE_DATE_EPOCH contains an invalid value and returns
+ * 0.
+ *
+ * @cmdname:	command name
+ * @fallback:	timestamp to use if SOURCE_DATE_EPOCH isn't set
+ * @return timestamp based on SOURCE_DATE_EPOCH
+ */
+time_t imagetool_get_source_date(
+	const char *cmdname,
+	time_t fallback);
+
 /*
  * There is a c file associated with supported image type low level code
  * for ex. default_image.c, fit_image.c
@@ -212,6 +231,9 @@ int imagetool_get_filesize(struct image_tool_params *params, const char *fname);
 
 
 void pbl_load_uboot(int fd, struct image_tool_params *mparams);
+int zynqmpbif_copy_image(int fd, struct image_tool_params *mparams);
+int imx8image_copy_image(int fd, struct image_tool_params *mparams);
+int imx8mimage_copy_image(int fd, struct image_tool_params *mparams);
 
 #define ___cat(a, b) a ## b
 #define __cat(a, b) ___cat(a, b)

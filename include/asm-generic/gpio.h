@@ -1,11 +1,15 @@
+/* SPDX-License-Identifier: GPL-2.0+ */
 /*
  * Copyright (c) 2011 The Chromium OS Authors.
  * Copyright (c) 2011, NVIDIA Corp. All rights reserved.
- * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #ifndef _ASM_GENERIC_GPIO_H_
 #define _ASM_GENERIC_GPIO_H_
+
+#include <dm/ofnode.h>
+
+struct ofnode_phandle_args;
 
 /*
  * Generic GPIO API for U-Boot
@@ -211,10 +215,9 @@ struct fdtdec_phandle_args;
  *
  * This routine sets the offset field to args[0] and the flags field to
  * GPIOD_ACTIVE_LOW if the GPIO_ACTIVE_LOW flag is present in args[1].
- *
  */
 int gpio_xlate_offs_flags(struct udevice *dev, struct gpio_desc *desc,
-			  struct fdtdec_phandle_args *args);
+			  struct ofnode_phandle_args *args);
 
 /**
  * struct struct dm_gpio_ops - Driver model GPIO operations
@@ -251,6 +254,8 @@ struct dm_gpio_ops {
 				int value);
 	int (*get_value)(struct udevice *dev, unsigned offset);
 	int (*set_value)(struct udevice *dev, unsigned offset, int value);
+	int (*get_open_drain)(struct udevice *dev, unsigned offset);
+	int (*set_open_drain)(struct udevice *dev, unsigned offset, int value);
 	/**
 	 * get_function() Get the GPIO function
 	 *
@@ -284,7 +289,7 @@ struct dm_gpio_ops {
 	 * @return 0 if OK, -ve on error
 	 */
 	int (*xlate)(struct udevice *dev, struct gpio_desc *desc,
-		     struct fdtdec_phandle_args *args);
+		     struct ofnode_phandle_args *args);
 };
 
 /**
@@ -485,9 +490,8 @@ int gpio_get_list_count(struct udevice *dev, const char *list_name);
  * This is a version of gpio_request_list_by_name() that does not use a
  * device. Avoid it unless the caller is not yet using driver model
  */
-int gpio_request_by_name_nodev(const void *blob, int node,
-			       const char *list_name,
-			       int index, struct gpio_desc *desc, int flags);
+int gpio_request_by_name_nodev(ofnode node, const char *list_name, int index,
+			       struct gpio_desc *desc, int flags);
 
 /**
  * gpio_request_list_by_name_nodev() - request GPIOs without a device
@@ -495,8 +499,7 @@ int gpio_request_by_name_nodev(const void *blob, int node,
  * This is a version of gpio_request_list_by_name() that does not use a
  * device. Avoid it unless the caller is not yet using driver model
  */
-int gpio_request_list_by_name_nodev(const void *blob, int node,
-				    const char *list_name,
+int gpio_request_list_by_name_nodev(ofnode node, const char *list_name,
 				    struct gpio_desc *desc_list, int max_count,
 				    int flags);
 
@@ -548,6 +551,38 @@ int gpio_free_list_nodev(struct gpio_desc *desc, int count);
 int dm_gpio_get_value(const struct gpio_desc *desc);
 
 int dm_gpio_set_value(const struct gpio_desc *desc, int value);
+
+/**
+ * dm_gpio_get_open_drain() - Check if open-drain-mode of a GPIO is active
+ *
+ * This checks if open-drain-mode for a GPIO is enabled or not. This method is
+ * optional.
+ *
+ * @desc:	GPIO description containing device, offset and flags,
+ *		previously returned by gpio_request_by_name()
+ * @return Value of open drain mode for GPIO (0 for inactive, 1 for active) or
+ *	   -ve on error
+ */
+int dm_gpio_get_open_drain(struct gpio_desc *desc);
+
+/**
+ * dm_gpio_set_open_drain() - Switch open-drain-mode of a GPIO on or off
+ *
+ * This enables or disables open-drain mode for a GPIO. This method is
+ * optional; if the driver does not support it, nothing happens when the method
+ * is called.
+ *
+ * In open-drain mode, instead of actively driving the output (Push-pull
+ * output), the GPIO's pin is connected to the collector (for a NPN transistor)
+ * or the drain (for a MOSFET) of a transistor, respectively. The pin then
+ * either forms an open circuit or a connection to ground, depending on the
+ * state of the transistor.
+ *
+ * @desc:	GPIO description containing device, offset and flags,
+ *		previously returned by gpio_request_by_name()
+ * @return 0 if OK, -ve on error
+ */
+int dm_gpio_set_open_drain(struct gpio_desc *desc, int value);
 
 /**
  * dm_gpio_set_dir() - Set the direction for a GPIO

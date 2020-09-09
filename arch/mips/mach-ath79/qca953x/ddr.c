@@ -1,8 +1,7 @@
+// SPDX-License-Identifier: GPL-2.0+
 /*
  * Copyright (C) 2015-2016 Wills Wang <wills.wang@live.com>
  * Based on Atheros LSDK/QSDK
- *
- * SPDX-License-Identifier: GPL-2.0+
  */
 
 #include <common.h>
@@ -10,9 +9,7 @@
 #include <asm/addrspace.h>
 #include <asm/types.h>
 #include <mach/ar71xx_regs.h>
-#include <mach/reset.h>
-
-DECLARE_GLOBAL_DATA_PTR;
+#include <mach/ath79.h>
 
 #define DDR_CTRL_UPD_EMR3S      BIT(5)
 #define DDR_CTRL_UPD_EMR2S      BIT(4)
@@ -226,7 +223,7 @@ void ddr_init(void)
 
 	regs = map_physmem(AR71XX_DDR_CTRL_BASE, AR71XX_DDR_CTRL_SIZE,
 			   MAP_NOCACHE);
-	val = get_bootstrap();
+	val = ath79_get_bootstrap();
 	if (val & QCA953X_BOOTSTRAP_DDR1) {
 		writel(DDR_CTL_CONFIG_VAL, regs + QCA953X_DDR_REG_CTL_CONF);
 		udelay(10);

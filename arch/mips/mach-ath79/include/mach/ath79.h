@@ -1,11 +1,10 @@
+/* SPDX-License-Identifier: GPL-2.0+ */
 /*
  * Atheros AR71XX/AR724X/AR913X common definitions
  *
  * Copyright (C) 2015-2016 Wills Wang <wills.wang@live.com>
  * Copyright (C) 2008-2011 Gabor Juhos <juhosg@openwrt.org>
  * Copyright (C) 2008 Imre Kaloz <kaloz@openwrt.org>
- *
- * SPDX-License-Identifier:	GPL-2.0+
  */
 
 #ifndef __ASM_MACH_ATH79_H
@@ -140,6 +139,7 @@ static inline int soc_is_qca956x(void)
 	return soc_is_tp9343() || soc_is_qca9561();
 }
 
+u32 ath79_get_bootstrap(void);
 int ath79_eth_reset(void);
 int ath79_usb_reset(void);
 
